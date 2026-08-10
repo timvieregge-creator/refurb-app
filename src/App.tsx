@@ -119,7 +119,9 @@ async function loadInitialData() {
     setLoading(false);
   }
 }
-
+useEffect(() => {
+  void loadInitialData();
+}, []);
   const suppliers = useMemo(() => [...new Set(batches.map((b) => b.supplier_name))].filter(Boolean).sort((a, b) => a.localeCompare(b, "de")), [batches]);
   const lots = useMemo(() => [...new Set(batches.map((b) => b.lot_number))].filter((x): x is string => Boolean(x)).sort((a, b) => a.localeCompare(b, "de")), [batches]);
   const filteredBatches = useMemo(() => {
@@ -318,8 +320,57 @@ useEffect(() => {
       <section style={styles.section}><h2>Vorhandene Partien</h2><div style={styles.filterGrid}><Field label="Suche" value={batchSearch} setValue={setBatchSearch} placeholder="Lieferant, Lot, Lieferschein..." /><label>Lieferant filtern<select value={batchSupplierFilter} onChange={(e) => setBatchSupplierFilter(e.target.value)} style={styles.input}><option value="">Alle Lieferanten</option>{suppliers.map((s) => <option key={s}>{s}</option>)}</select></label><label>Lot filtern<select value={batchLotFilter} onChange={(e) => setBatchLotFilter(e.target.value)} style={styles.input}><option value="">Alle Lots</option>{lots.map((l) => <option key={l}>{l}</option>)}</select></label></div>{loading ? <p>Lade Partien...</p> : filteredBatches.length === 0 ? <p>Keine passenden Einkaufspartien vorhanden.</p> : <table style={styles.table}><thead><tr>{["Lieferant", "Lot", "Lieferschein", "Referenz", "Eingang", "Einkaufskosten", "Aktionen"].map((x) => <th key={x} style={styles.cell}>{x}</th>)}</tr></thead><tbody>{filteredBatches.map((b) => <tr key={b.id}><td style={styles.cell}>{b.supplier_name}</td><td style={styles.cell}>{b.lot_number || "-"}</td><td style={styles.cell}>{b.delivery_note_number || "-"}</td><td style={styles.cell}>{b.supplier_reference || "-"}</td><td style={styles.cell}>{b.received_at}</td><td style={styles.cell}>{formatCurrency(b.total_purchase_cost)}</td><td style={styles.cell}><button onClick={() => startBatchEditing(b)} style={styles.smallBlueButton}>Bearbeiten</button> <button onClick={() => void handleBatchDelete(b)} style={styles.smallRedButton}>Löschen</button></td></tr>)}</tbody></table>}</section>
       <section style={styles.section}><h2>Geräte der ausgewählten Partie</h2>{!selectedBatchId ? <p>Bitte zuerst eine Einkaufspartie auswählen.</p> : devices.length === 0 ? <p>Noch keine Geräte in dieser Partie erfasst.</p> : <table style={styles.table}><thead><tr>{["Interne Nummer", "Seriennummer", "Modell", "Zustand", "Datenlöschung", "Status", "Aktionen"].map((x) => <th key={x} style={styles.cell}>{x}</th>)}</tr></thead><tbody>{devices.map((d) => <tr key={d.id}><td style={styles.cell}>{d.internal_number}</td><td style={styles.cell}>{d.serial_number || "-"}</td><td style={styles.cell}>{[d.manufacturer, d.model].filter(Boolean).join(" ") || "-"}</td><td style={styles.cell}>{conditionLabel(d.condition)}</td><td style={styles.cell}>{erasureLabel(d.data_erasure_status)}</td><td style={styles.cell}><select value={d.status} disabled={saving} onChange={(e) => void handleStatusChange(d.id, e.target.value as DeviceStatus)} style={styles.statusSelect}>{statusOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></td><td style={styles.cell}><div style={styles.actionRow}><button onClick={() => startDeviceEditing(d)} style={styles.smallBlueButton}>Bearbeiten</button><button onClick={() => void handleDeviceDelete(d)} style={styles.smallRedButton}>Löschen</button><button onClick={() => handlePrintDevice(d)} style={styles.smallGrayButton}>Drucken</button></div></td></tr>)}</tbody></table>}</section>
     </main>
-    {printDevice && <div className="print-card"><div className="print-card-content"><QRCodeSVG value=<QRCodeSVG
-  value={printDevice.internal_number} size={180} level="M" includeMargin /><h1>Geräteetikett</h1><p className="print-number">{printDevice.internal_number}</p><div className="print-details"><p><strong>Hersteller:</strong> {printDevice.manufacturer || "-"}</p><p><strong>Modell:</strong> {printDevice.model || "-"}</p><p><strong>Seriennummer:</strong> {printDevice.serial_number || "-"}</p><p><strong>Zustand:</strong> {conditionLabel(printDevice.condition)}</p><p><strong>Status:</strong> {statusLabel(printDevice.status)}</p></div><p className="print-hint">QR-Code mit der Gerätenummer scannen</p></div></div>}
+{printDevice && (
+  <div className="print-card">
+    <div className="print-card-content">
+      <QRCodeSVG
+        value={`https://refurb-app-two.vercel.app/geraet/${encodeURIComponent(
+          printDevice.internal_number,
+        )}`}
+        size={180}
+        level="M"
+        includeMargin
+      />
+
+      <h1>Geräteetikett</h1>
+
+      <p className="print-number">
+        {printDevice.internal_number}
+      </p>
+
+      <div className="print-details">
+        <p>
+          <strong>Hersteller:</strong>{" "}
+          {printDevice.manufacturer || "-"}
+        </p>
+
+        <p>
+          <strong>Modell:</strong>{" "}
+          {printDevice.model || "-"}
+        </p>
+
+        <p>
+          <strong>Seriennummer:</strong>{" "}
+          {printDevice.serial_number || "-"}
+        </p>
+
+        <p>
+          <strong>Zustand:</strong>{" "}
+          {conditionLabel(printDevice.condition)}
+        </p>
+
+        <p>
+          <strong>Status:</strong>{" "}
+          {statusLabel(printDevice.status)}
+        </p>
+      </div>
+
+      <p className="print-hint">
+        QR-Code mit der Gerätenummer scannen
+      </p>
+    </div>
+  </div>
+)}
   </>;
 }
 
@@ -330,7 +381,24 @@ function conditionLabel(value: DeviceCondition | null) { return ({ unknown: "Unb
 function erasureLabel(value: DataErasureStatus | null) { return ({ unknown: "Unbekannt", not_started: "Nicht begonnen", in_progress: "In Bearbeitung", completed: "Abgeschlossen", failed: "Fehlgeschlagen" } as Record<string, string>)[value || "unknown"]; }
 function statusLabel(value: string) { return statusOptions.find(([key]) => key === value)?.[1] || value; }
 
-const styles = { main: { maxWidth: 1200, margin: "0 auto", padding: 32, fontFamily: "Arial, sans-serif" }, section: { border: "1px solid #ddd", borderRadius: 8, padding: 20, marginTop: 24, marginBottom: 32 }, grid: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16, marginTop: 16 }, filterGrid: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 20 },dashboardGrid: {
+const styles = { main: { maxWidth: 1200, margin: "0 auto", padding: 32, fontFamily: "Arial, sans-serif" }, section: { border: "1px solid #ddd", borderRadius: 8, padding: 20, marginTop: 24, marginBottom: 32 }, 
+
+detailGrid: {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+  gap: 12,
+  marginTop: 16,
+},
+
+grid: { display: "grid", 
+detailGrid: {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+  gap: 12,
+  marginTop: 16,
+},
+
+gridTemplateColumns: "repeat(2, 1fr)", gap: 16, marginTop: 16 }, filterGrid: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 20 },dashboardGrid: {
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
   gap: 12,
