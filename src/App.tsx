@@ -222,8 +222,8 @@ function App() {
         <section style={styles.section}><h2>GerÃ¤te der ausgewÃ¤hlten Partie</h2>{!selectedBatchId ? <p>Bitte zuerst eine Einkaufspartie auswÃ¤hlen.</p> : devices.length === 0 ? <p>Noch keine GerÃ¤te in dieser Partie erfasst.</p> : <table style={styles.table}><thead><tr>{["Interne Nummer", "Seriennummer", "Modell", "Zustand", "DatenlÃ¶schung", "Status", "Aktionen"].map((x) => <th key={x} style={styles.cell}>{x}</th>)}</tr></thead><tbody>{devices.map((d) => <tr key={d.id}><td style={styles.cell}>{d.internal_number}</td><td style={styles.cell}>{d.serial_number || "-"}</td><td style={styles.cell}>{[d.manufacturer, d.model].filter(Boolean).join(" ") || "-"}</td><td style={styles.cell}>{conditionLabel(d.condition)}</td><td style={styles.cell}>{erasureLabel(d.data_erasure_status)}</td><td style={styles.cell}><select value={d.status} disabled={saving} onChange={(e) => void handleStatusChange(d.id, e.target.value as DeviceStatus)} style={styles.statusSelect}>{statusOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></td><td style={styles.cell}><button onClick={() => startDeviceEditing(d)} style={styles.smallBlueButton}>Bearbeiten</button> <button onClick={() => void handleDeviceDelete(d)} style={styles.smallRedButton}>LÃ¶schen</button> <button onClick={() => handlePrintDevice(d)} style={styles.smallGrayButton}>Drucken</button></td></tr>)}</tbody></table>}</section>
       </main>
      {printDevice && (() => {
-  const deviceUrl =
-    `${window.location.origin}/#/geraet/${encodeURIComponent(printDevice.internal_number)}`;
+const deviceUrl =
+  `https://refurb-app-two.vercel.app/#/geraet/${encodeURIComponent(printDevice.internal_number)}`;
 
   return (
     <div className="print-card">
