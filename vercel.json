@@ -1,3 +1,4 @@
+@'
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
@@ -7,3 +8,4 @@
     }
   ]
 }
+'@ | Set-Content .\vercel.json -Encoding utf8
