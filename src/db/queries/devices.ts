@@ -96,21 +96,7 @@ export async function getAllDevices(): Promise<Device[]> {
   if (error) throw new Error(error.message);
   return (data || []) as Device[];
 }
-export async function getDeviceByInternalNumber(
-  internalNumber: string,
-): Promise<Device | null> {
-  const { data, error } = await supabase
-    .from("devices")
-    .select("*")
-    .eq("internal_number", internalNumber)
-    .maybeSingle();
 
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  return data as Device | null;
-}
 export async function searchDevices(search: string): Promise<Device[]> {
   const value = search.trim();
   if (!value) return getAllDevices();
@@ -127,7 +113,21 @@ export async function searchDevices(search: string): Promise<Device[]> {
   if (error) throw new Error(error.message);
   return (data || []) as Device[];
 }
+export async function getDeviceByInternalNumber(
+  internalNumber: string,
+): Promise<Device | null> {
+  const { data, error } = await supabase
+    .from("devices")
+    .select("*")
+    .eq("internal_number", internalNumber)
+    .maybeSingle();
 
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data as Device | null;
+}
 export async function getDevicesByBatch(batchId: string): Promise<Device[]> {
   const { data, error } = await supabase
     .from("devices")
