@@ -40,9 +40,6 @@ const statusOptions: [DeviceStatus, string][] = [
 ];
 
 function App() {
- if (window.location.pathname.startsWith("/geraet/")) {
-    return <DeviceDetail />;
-  }
   const [batches, setBatches] = useState<SourceBatch[]>([]);
   const [devices, setDevices] = useState<Device[]>([]);
   const [allDevices, setAllDevices] = useState<Device[]>([]);
@@ -95,7 +92,12 @@ function App() {
     () => [...new Set(batches.map((b) => b.lot_number))].filter((x): x is string => Boolean(x)).sort((a, b) => a.localeCompare(b, "de")),
     [batches],
   );
-
+if (
+  window.location.hash.startsWith("#/geraet/") ||
+  window.location.pathname.startsWith("/geraet/")
+) {
+  return <DeviceDetail />;
+}
   const filteredBatches = useMemo(() => {
     const search = batchSearch.trim().toLowerCase();
     return batches.filter((b) => {
@@ -217,7 +219,11 @@ function App() {
 
         <section style={styles.section}><h2>Geräte der ausgewählten Partie</h2>{!selectedBatchId ? <p>Bitte zuerst eine Einkaufspartie auswählen.</p> : devices.length === 0 ? <p>Noch keine Geräte in dieser Partie erfasst.</p> : <table style={styles.table}><thead><tr>{["Interne Nummer", "Seriennummer", "Modell", "Zustand", "Datenlöschung", "Status", "Aktionen"].map((x) => <th key={x} style={styles.cell}>{x}</th>)}</tr></thead><tbody>{devices.map((d) => <tr key={d.id}><td style={styles.cell}>{d.internal_number}</td><td style={styles.cell}>{d.serial_number || "-"}</td><td style={styles.cell}>{[d.manufacturer, d.model].filter(Boolean).join(" ") || "-"}</td><td style={styles.cell}>{conditionLabel(d.condition)}</td><td style={styles.cell}>{erasureLabel(d.data_erasure_status)}</td><td style={styles.cell}><select value={d.status} disabled={saving} onChange={(e) => void handleStatusChange(d.id, e.target.value as DeviceStatus)} style={styles.statusSelect}>{statusOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></td><td style={styles.cell}><button onClick={() => startDeviceEditing(d)} style={styles.smallBlueButton}>Bearbeiten</button> <button onClick={() => void handleDeviceDelete(d)} style={styles.smallRedButton}>Löschen</button> <button onClick={() => handlePrintDevice(d)} style={styles.smallGrayButton}>Drucken</button></td></tr>)}</tbody></table>}</section>
       </main>
-      {printDevice && <div className="print-card"><div className="print-card-content"><QRCodeSVG value={printDevice.internal_number} size={180} level="M" includeMargin /><h1>Geräteetikett</h1><p className="print-number">{printDevice.internal_number}</p><p><strong>Hersteller:</strong> {printDevice.manufacturer || "-"}</p><p><strong>Modell:</strong> {printDevice.model || "-"}</p><p><strong>Seriennummer:</strong> {printDevice.serial_number || "-"}</p></div></div>}
+      {printDevice && <div className="print-card"><div className="print-card-content"><QRCodeSVG value={`${window.location.origin}/geraet/${encodeURIComponent(printDevice.internal_number)}`}
+  size={180}
+  level="M"
+  includeMargin
+/><h1>Geräteetikett</h1><p className="print-number">{printDevice.internal_number}</p><p><strong>Hersteller:</strong> {printDevice.manufacturer || "-"}</p><p><strong>Modell:</strong> {printDevice.model || "-"}</p><p><strong>Seriennummer:</strong> {printDevice.serial_number || "-"}</p></div></div>}
     </>
   );
 }

@@ -30,8 +30,9 @@ export default function DeviceDetail() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const match = window.location.pathname.match(/^\/geraet\/(.+)$/);
-
+const hashMatch = window.location.hash.match(/^#\/geraet\/(.+)$/);
+const pathMatch = window.location.pathname.match(/^\/geraet\/(.+)$/);
+const match = hashMatch || pathMatch;
     if (!match) {
       setError("Ungültige Geräte-URL.");
       setLoading(false);
