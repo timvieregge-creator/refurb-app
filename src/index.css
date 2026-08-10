@@ -417,7 +417,18 @@ select:has(option[value="reserved"]:checked) {
     overflow: hidden !important;
     background: #ffffff !important;
   }
-
+  body.printing .print-url {
+    display: block !important;
+    grid-column: 1 / -1 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    color: #000 !important;
+    font-size: 4px !important;
+    line-height: 4px !important;
+    white-space: nowrap !important;
+    overflow: visible !important;
+    word-break: normal !important;
+  }
   body.printing #root {
     display: block !important;
     width: 50mm !important;

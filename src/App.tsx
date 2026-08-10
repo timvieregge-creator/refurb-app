@@ -235,10 +235,9 @@ const deviceUrl =
           includeMargin
         />
 
-        <p style={{ fontSize: 10, wordBreak: "break-all" }}>
-          QR-Ziel: {deviceUrl}
-        </p>
-
+<p className="print-url">
+  {deviceUrl}
+</p>
         <h1>GerÃ¤teetikett</h1>
         <p className="print-number">{printDevice.internal_number}</p>
         <p><strong>Hersteller:</strong> {printDevice.manufacturer || "-"}</p>
