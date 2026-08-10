@@ -246,7 +246,9 @@ if (
     </div>
   );
 })()}
-
+  </>
+  );
+}
 function Field({ label, value, setValue, placeholder }: { label: string; value: string; setValue: (value: string) => void; placeholder?: string }) { return <label>{label}<input value={value} onChange={(e) => setValue(e.target.value)} placeholder={placeholder} style={styles.input} /></label>; }
 function today() { return new Date().toISOString().slice(0, 10); }
 function parseNumber(value: string) { return Number(value.replace(",", ".")) || 0; }
