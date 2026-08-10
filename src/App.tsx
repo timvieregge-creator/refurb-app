@@ -20,7 +20,7 @@ import {
   type DeviceCondition,
   type DeviceStatus,
 } from "./db/queries/devices";
-
+import DeviceDetail from "./DeviceDetail";
 const statusOptions: [DeviceStatus, string][] = [
   ["received", "Eingegangen"],
   ["identified", "Identifiziert"],
@@ -40,6 +40,9 @@ const statusOptions: [DeviceStatus, string][] = [
 ];
 
 function App() {
+ if (window.location.pathname.startsWith("/geraet/")) {
+    return <DeviceDetail />;
+  }
   const [batches, setBatches] = useState<SourceBatch[]>([]);
   const [devices, setDevices] = useState<Device[]>([]);
   const [allDevices, setAllDevices] = useState<Device[]>([]);
