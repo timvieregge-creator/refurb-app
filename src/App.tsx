@@ -6,6 +6,7 @@ import {
   createDevice,
   deleteDevice,
   getAllDevices,
+  getDeviceByInternalNumber,
   getDevicesByBatch,
   searchDevices,
   transitionDevice,
@@ -15,6 +16,8 @@ import {
   type DeviceCondition,
   type DeviceStatus,
 } from "./db/queries/devices";
+const [detailDevice, setDetailDevice] = useState<Device | null>(null);
+const [detailLoading, setDetailLoading] = useState(false);
 const statusOptions: [DeviceStatus, string][] = [["received", "Eingegangen"], ["identified", "Identifiziert"], ["waiting_for_erasure", "Wartet auf Datenlöschung"], ["erased", "Daten gelöscht"], ["tested", "Getestet"], ["waiting_for_repair", "Wartet auf Reparatur"], ["in_repair", "In Reparatur"], ["repair_failed", "Reparatur fehlgeschlagen"], ["ready_for_grading", "Bereit für Grading"], ["graded", "Gegradet"], ["ready_for_sale", "Verkaufsbereit"], ["reserved", "Reserviert"], ["sold", "Verkauft"], ["returned", "Retourniert"], ["scrapped", "Ausgemustert"]];
 
 function App() {
@@ -57,8 +60,40 @@ const [searchResults, setSearchResults] = useState<Device[]>([]);
   const [dataErasureStatus, setDataErasureStatus] = useState<DataErasureStatus>("unknown");
   const [inspectionNotes, setInspectionNotes] = useState("");
 
-  useEffect(() => {
-  void loadInitialData();
+useEffect(() => {
+  const match = window.location.pathname.match(/^\/geraet\/(.+)$/);
+
+  if (!match) {
+    return;
+  }
+
+  const internalNumber = decodeURIComponent(match[1]);
+
+  async function loadDetailDevice() {
+    try {
+      setDetailLoading(true);
+      setError("");
+
+      const device = await getDeviceByInternalNumber(internalNumber);
+
+      if (!device) {
+        setError("Gerät wurde nicht gefunden.");
+        return;
+      }
+
+      setDetailDevice(device);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Fehler beim Laden des Geräts",
+      );
+    } finally {
+      setDetailLoading(false);
+    }
+  }
+
+  void loadDetailDevice();
 }, []);
 
 async function loadInitialData() {
@@ -132,6 +167,75 @@ useEffect(() => {
 }, []);
 
   return <>
+{window.location.pathname.startsWith("/geraet/") ? (
+  <main style={styles.main}>
+    <h1>Gerätedetails</h1>
+
+    {detailLoading && <p>Gerät wird geladen...</p>}
+
+    {!detailLoading && !detailDevice && (
+      <p>Kein Gerät gefunden.</p>
+    )}
+
+    {detailDevice && (
+      <section style={styles.section}>
+        <h2>{detailDevice.internal_number}</h2>
+
+        <div style={styles.detailGrid}>
+          
+<p>
+            <strong>Hersteller:</strong>{" "}
+            {detailDevice.manufacturer || "-"}
+          </p>
+
+          <p>
+            <strong>Modell:</strong>{" "}
+            {detailDevice.model || "-"}
+          </p>
+
+          <p>
+            <strong>Seriennummer:</strong>{" "}
+            {detailDevice.serial_number || "-"}
+          </p>
+
+          <p>
+            <strong>IMEI 1:</strong>{" "}
+            {detailDevice.imei_1 || "-"}
+          </p>
+
+          <p>
+            <strong>IMEI 2:</strong>{" "}
+            {detailDevice.imei_2 || "-"}
+          </p>
+
+          <p>
+            <strong>Status:</strong>{" "}
+            {statusLabel(detailDevice.status)}
+          </p>
+
+          <p>
+            <strong>Zustand:</strong>{" "}
+            {conditionLabel(detailDevice.condition)}
+          </p>
+
+          <p>
+            <strong>Datenlöschung:</strong>{" "}
+            {erasureLabel(detailDevice.data_erasure_status)}
+          </p>
+
+          <p>
+            <strong>Einkaufspreis:</strong>{" "}
+            {formatCurrency(detailDevice.purchase_cost)}
+          </p>
+        </div>
+      </section>
+    )}
+  </main>
+) : (
+  <>
+    {/* Dein bisheriger App-Inhalt kommt hier hinein */}
+  </>
+)}
     <main style={styles.main}>
       <h1>PLUS EDV Wareneingang</h1>
 <section style={styles.section}>
@@ -214,7 +318,8 @@ useEffect(() => {
       <section style={styles.section}><h2>Vorhandene Partien</h2><div style={styles.filterGrid}><Field label="Suche" value={batchSearch} setValue={setBatchSearch} placeholder="Lieferant, Lot, Lieferschein..." /><label>Lieferant filtern<select value={batchSupplierFilter} onChange={(e) => setBatchSupplierFilter(e.target.value)} style={styles.input}><option value="">Alle Lieferanten</option>{suppliers.map((s) => <option key={s}>{s}</option>)}</select></label><label>Lot filtern<select value={batchLotFilter} onChange={(e) => setBatchLotFilter(e.target.value)} style={styles.input}><option value="">Alle Lots</option>{lots.map((l) => <option key={l}>{l}</option>)}</select></label></div>{loading ? <p>Lade Partien...</p> : filteredBatches.length === 0 ? <p>Keine passenden Einkaufspartien vorhanden.</p> : <table style={styles.table}><thead><tr>{["Lieferant", "Lot", "Lieferschein", "Referenz", "Eingang", "Einkaufskosten", "Aktionen"].map((x) => <th key={x} style={styles.cell}>{x}</th>)}</tr></thead><tbody>{filteredBatches.map((b) => <tr key={b.id}><td style={styles.cell}>{b.supplier_name}</td><td style={styles.cell}>{b.lot_number || "-"}</td><td style={styles.cell}>{b.delivery_note_number || "-"}</td><td style={styles.cell}>{b.supplier_reference || "-"}</td><td style={styles.cell}>{b.received_at}</td><td style={styles.cell}>{formatCurrency(b.total_purchase_cost)}</td><td style={styles.cell}><button onClick={() => startBatchEditing(b)} style={styles.smallBlueButton}>Bearbeiten</button> <button onClick={() => void handleBatchDelete(b)} style={styles.smallRedButton}>Löschen</button></td></tr>)}</tbody></table>}</section>
       <section style={styles.section}><h2>Geräte der ausgewählten Partie</h2>{!selectedBatchId ? <p>Bitte zuerst eine Einkaufspartie auswählen.</p> : devices.length === 0 ? <p>Noch keine Geräte in dieser Partie erfasst.</p> : <table style={styles.table}><thead><tr>{["Interne Nummer", "Seriennummer", "Modell", "Zustand", "Datenlöschung", "Status", "Aktionen"].map((x) => <th key={x} style={styles.cell}>{x}</th>)}</tr></thead><tbody>{devices.map((d) => <tr key={d.id}><td style={styles.cell}>{d.internal_number}</td><td style={styles.cell}>{d.serial_number || "-"}</td><td style={styles.cell}>{[d.manufacturer, d.model].filter(Boolean).join(" ") || "-"}</td><td style={styles.cell}>{conditionLabel(d.condition)}</td><td style={styles.cell}>{erasureLabel(d.data_erasure_status)}</td><td style={styles.cell}><select value={d.status} disabled={saving} onChange={(e) => void handleStatusChange(d.id, e.target.value as DeviceStatus)} style={styles.statusSelect}>{statusOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></td><td style={styles.cell}><div style={styles.actionRow}><button onClick={() => startDeviceEditing(d)} style={styles.smallBlueButton}>Bearbeiten</button><button onClick={() => void handleDeviceDelete(d)} style={styles.smallRedButton}>Löschen</button><button onClick={() => handlePrintDevice(d)} style={styles.smallGrayButton}>Drucken</button></div></td></tr>)}</tbody></table>}</section>
     </main>
-    {printDevice && <div className="print-card"><div className="print-card-content"><QRCodeSVG value={printDevice.internal_number} size={180} level="M" includeMargin /><h1>Geräteetikett</h1><p className="print-number">{printDevice.internal_number}</p><div className="print-details"><p><strong>Hersteller:</strong> {printDevice.manufacturer || "-"}</p><p><strong>Modell:</strong> {printDevice.model || "-"}</p><p><strong>Seriennummer:</strong> {printDevice.serial_number || "-"}</p><p><strong>Zustand:</strong> {conditionLabel(printDevice.condition)}</p><p><strong>Status:</strong> {statusLabel(printDevice.status)}</p></div><p className="print-hint">QR-Code mit der Gerätenummer scannen</p></div></div>}
+    {printDevice && <div className="print-card"><div className="print-card-content"><QRCodeSVG value=<QRCodeSVG
+  value={printDevice.internal_number} size={180} level="M" includeMargin /><h1>Geräteetikett</h1><p className="print-number">{printDevice.internal_number}</p><div className="print-details"><p><strong>Hersteller:</strong> {printDevice.manufacturer || "-"}</p><p><strong>Modell:</strong> {printDevice.model || "-"}</p><p><strong>Seriennummer:</strong> {printDevice.serial_number || "-"}</p><p><strong>Zustand:</strong> {conditionLabel(printDevice.condition)}</p><p><strong>Status:</strong> {statusLabel(printDevice.status)}</p></div><p className="print-hint">QR-Code mit der Gerätenummer scannen</p></div></div>}
   </>;
 }
 
