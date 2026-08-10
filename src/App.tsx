@@ -2,13 +2,27 @@ import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { createSourceBatch, deleteSourceBatch, getSourceBatches, updateSourceBatch, type SourceBatch } from "./db/queries/batches";
-import { createDevice, deleteDevice, getDevicesByBatch, transitionDevice, updateDevice, type DataErasureStatus, type Device, type DeviceCondition, type DeviceStatus } from "./db/queries/devices";
-
+import {
+  createDevice,
+  deleteDevice,
+  getAllDevices,
+  getDevicesByBatch,
+  searchDevices,
+  transitionDevice,
+  updateDevice,
+  type DataErasureStatus,
+  type Device,
+  type DeviceCondition,
+  type DeviceStatus,
+} from "./db/queries/devices";
 const statusOptions: [DeviceStatus, string][] = [["received", "Eingegangen"], ["identified", "Identifiziert"], ["waiting_for_erasure", "Wartet auf Datenlöschung"], ["erased", "Daten gelöscht"], ["tested", "Getestet"], ["waiting_for_repair", "Wartet auf Reparatur"], ["in_repair", "In Reparatur"], ["repair_failed", "Reparatur fehlgeschlagen"], ["ready_for_grading", "Bereit für Grading"], ["graded", "Gegradet"], ["ready_for_sale", "Verkaufsbereit"], ["reserved", "Reserviert"], ["sold", "Verkauft"], ["returned", "Retourniert"], ["scrapped", "Ausgemustert"]];
 
 function App() {
   const [batches, setBatches] = useState<SourceBatch[]>([]);
   const [devices, setDevices] = useState<Device[]>([]);
+const [allDevices, setAllDevices] = useState<Device[]>([]);
+const [deviceSearch, setDeviceSearch] = useState("");
+const [searchResults, setSearchResults] = useState<Device[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -43,7 +57,33 @@ function App() {
   const [dataErasureStatus, setDataErasureStatus] = useState<DataErasureStatus>("unknown");
   const [inspectionNotes, setInspectionNotes] = useState("");
 
-  useEffect(() => { void loadBatches(); }, []);
+  useEffect(() => {
+  void loadInitialData();
+}, []);
+
+async function loadInitialData() {
+  try {
+    setLoading(true);
+    setError("");
+
+    const [loadedBatches, loadedDevices] = await Promise.all([
+      getSourceBatches(),
+      getAllDevices(),
+    ]);
+
+    setBatches(loadedBatches);
+    setAllDevices(loadedDevices);
+    setSearchResults(loadedDevices);
+  } catch (err) {
+    setError(
+      err instanceof Error
+        ? err.message
+        : "Fehler beim Laden der Daten",
+    );
+  } finally {
+    setLoading(false);
+  }
+}
 
   const suppliers = useMemo(() => [...new Set(batches.map((b) => b.supplier_name))].filter(Boolean).sort((a, b) => a.localeCompare(b, "de")), [batches]);
   const lots = useMemo(() => [...new Set(batches.map((b) => b.lot_number))].filter((x): x is string => Boolean(x)).sort((a, b) => a.localeCompare(b, "de")), [batches]);
@@ -93,7 +133,82 @@ useEffect(() => {
 
   return <>
     <main style={styles.main}>
-      <h1>Refurbishment-App</h1><p>Einkaufspartien und Geräte verwalten</p>{error && <div style={styles.error}>{error}</div>}
+      <h1>PLUS EDV Wareneingang</h1>
+<section style={styles.section}>
+  <h2>Dashboard</h2>
+
+  <div style={styles.dashboardGrid}>
+    <div style={styles.dashboardCard}>
+      <strong>{allDevices.length}</strong>
+      <span>Alle Geräte</span>
+    </div>
+
+    {statusOptions.map(([status, label]) => (
+      <div key={status} style={styles.dashboardCard}>
+        <strong>
+          {
+            allDevices.filter(
+              (device) => device.status === status,
+            ).length
+          }
+        </strong>
+        <span>{label}</span>
+      </div>
+    ))}
+  </div>
+</section>
+<section style={styles.section}>
+  <h2>Gerätesuche</h2>
+
+  <input
+    value={deviceSearch}
+    onChange={async (event) => {
+      const value = event.target.value;
+      setDeviceSearch(value);
+
+      try {
+        const results = await searchDevices(value);
+        setSearchResults(results);
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Fehler bei der Gerätesuche",
+        );
+      }
+    }}
+    placeholder="Seriennummer, IMEI, interne Nummer, Hersteller oder Modell"
+    style={styles.input}
+  />
+
+  {deviceSearch.trim() && (
+    <div style={{ marginTop: 16 }}>
+      <strong>{searchResults.length} Treffer gefunden</strong>
+
+      {searchResults.map((device) => (
+        <div
+          key={device.id}
+          style={{
+            padding: 12,
+            marginTop: 8,
+            border: "1px solid #ddd",
+            borderRadius: 6,
+          }}
+        >
+          <strong>{device.internal_number}</strong>
+          <div>
+            {[device.manufacturer, device.model]
+              .filter(Boolean)
+              .join(" ") || "Unbekanntes Gerät"}
+          </div>
+          <div>Seriennummer: {device.serial_number || "-"}</div>
+          <div>IMEI 1: {device.imei_1 || "-"}</div>
+          <div>Status: {statusLabel(device.status)}</div>
+        </div>
+      ))}
+    </div>
+  )}
+</section><p>Einkaufspartien und Geräte verwalten</p>{error && <div style={styles.error}>{error}</div>}
       <section style={styles.section}><h2>{editingBatchId ? "Einkaufspartie bearbeiten" : "Neue Einkaufspartie"}</h2><form onSubmit={handleBatchSubmit}><div style={styles.grid}><Field label="Lieferant" value={supplierName} setValue={setSupplierName} placeholder="z. B. ABC GmbH" /><Field label="Lot-Nummer" value={lotNumber} setValue={setLotNumber} placeholder="z. B. LOT-2026-001" /><Field label="Lieferscheinnummer" value={deliveryNoteNumber} setValue={setDeliveryNoteNumber} placeholder="z. B. LS-4711" /><Field label="Lieferantenreferenz" value={supplierReference} setValue={setSupplierReference} placeholder="z. B. Bestellnummer" /><label>Eingangsdatum<input type="date" value={receivedAt} onChange={(e) => setReceivedAt(e.target.value)} style={styles.input} /></label><Field label="Einkaufskosten" value={totalPurchaseCost} setValue={setTotalPurchaseCost} placeholder="0,00" /><Field label="Transportkosten" value={transportCost} setValue={setTransportCost} placeholder="0,00" /><Field label="Notiz" value={notes} setValue={setNotes} placeholder="Optional" /></div><div style={styles.buttonRow}><button type="submit" disabled={saving} style={styles.blueButton}>{saving ? "Speichert..." : editingBatchId ? "Änderung speichern" : "Partie speichern"}</button>{editingBatchId && <button type="button" onClick={resetBatchForm} style={styles.grayButton}>Abbrechen</button>}</div></form></section>
       <section style={styles.section}><h2>{editingDeviceId ? "Gerät bearbeiten" : "Gerät erfassen"}</h2><form onSubmit={handleDeviceSubmit}><label>Einkaufspartie<select value={selectedBatchId} onChange={(e) => void handleBatchChange(e.target.value)} disabled={Boolean(editingDeviceId)} style={styles.input}><option value="">Bitte auswählen</option>{batches.map((b) => <option key={b.id} value={b.id}>{b.supplier_name}{b.lot_number ? ` - Lot ${b.lot_number}` : ""}{b.delivery_note_number ? ` - LS ${b.delivery_note_number}` : ""}</option>)}</select></label><div style={styles.grid}><Field label="Seriennummer" value={serialNumber} setValue={setSerialNumber} placeholder="Seriennummer" /><Field label="IMEI 1" value={imei1} setValue={setImei1} placeholder="Optional" /><Field label="IMEI 2" value={imei2} setValue={setImei2} placeholder="Optional" /><Field label="Hersteller" value={manufacturer} setValue={setManufacturer} placeholder="z. B. Dell" /><Field label="Modell" value={model} setValue={setModel} placeholder="z. B. Latitude 5420" /><label>Gerätetyp<select value={deviceType} onChange={(e) => setDeviceType(e.target.value)} style={styles.input}><option value="notebook">Notebook</option><option value="desktop">Desktop-PC</option><option value="monitor">Monitor</option><option value="smartphone">Smartphone</option><option value="tablet">Tablet</option><option value="server">Server</option><option value="other">Sonstiges</option></select></label><Field label="Einkaufspreis" value={purchaseCost} setValue={setPurchaseCost} placeholder="0,00" /><label>Zustand<select value={condition} onChange={(e) => setCondition(e.target.value as DeviceCondition)} style={styles.input}><option value="unknown">Unbekannt</option><option value="good">Gut</option><option value="used">Gebraucht</option><option value="damaged">Beschädigt</option></select></label><Field label="Defektkategorie" value={defectCategory} setValue={setDefectCategory} placeholder="z. B. Display, Akku" /><label>Zubehör vollständig<select value={accessoriesComplete} onChange={(e) => setAccessoriesComplete(e.target.value)} style={styles.input}><option value="">Unbekannt</option><option value="yes">Ja</option><option value="no">Nein</option></select></label><label>Datenlöschung<select value={dataErasureStatus} onChange={(e) => setDataErasureStatus(e.target.value as DataErasureStatus)} style={styles.input}><option value="unknown">Unbekannt</option><option value="not_started">Nicht begonnen</option><option value="in_progress">In Bearbeitung</option><option value="completed">Abgeschlossen</option><option value="failed">Fehlgeschlagen</option></select></label></div><label>Defektbeschreibung<textarea value={defectDescription} onChange={(e) => setDefectDescription(e.target.value)} style={styles.textarea} /></label><label>Prüfnotizen<textarea value={inspectionNotes} onChange={(e) => setInspectionNotes(e.target.value)} style={styles.textarea} /></label><div style={styles.buttonRow}><button type="submit" disabled={saving} style={styles.greenButton}>{saving ? "Speichert..." : editingDeviceId ? "Änderung speichern" : "Gerät speichern"}</button>{editingDeviceId && <button type="button" onClick={resetDeviceForm} style={styles.grayButton}>Abbrechen</button>}</div></form></section>
       <section style={styles.section}><h2>Vorhandene Partien</h2><div style={styles.filterGrid}><Field label="Suche" value={batchSearch} setValue={setBatchSearch} placeholder="Lieferant, Lot, Lieferschein..." /><label>Lieferant filtern<select value={batchSupplierFilter} onChange={(e) => setBatchSupplierFilter(e.target.value)} style={styles.input}><option value="">Alle Lieferanten</option>{suppliers.map((s) => <option key={s}>{s}</option>)}</select></label><label>Lot filtern<select value={batchLotFilter} onChange={(e) => setBatchLotFilter(e.target.value)} style={styles.input}><option value="">Alle Lots</option>{lots.map((l) => <option key={l}>{l}</option>)}</select></label></div>{loading ? <p>Lade Partien...</p> : filteredBatches.length === 0 ? <p>Keine passenden Einkaufspartien vorhanden.</p> : <table style={styles.table}><thead><tr>{["Lieferant", "Lot", "Lieferschein", "Referenz", "Eingang", "Einkaufskosten", "Aktionen"].map((x) => <th key={x} style={styles.cell}>{x}</th>)}</tr></thead><tbody>{filteredBatches.map((b) => <tr key={b.id}><td style={styles.cell}>{b.supplier_name}</td><td style={styles.cell}>{b.lot_number || "-"}</td><td style={styles.cell}>{b.delivery_note_number || "-"}</td><td style={styles.cell}>{b.supplier_reference || "-"}</td><td style={styles.cell}>{b.received_at}</td><td style={styles.cell}>{formatCurrency(b.total_purchase_cost)}</td><td style={styles.cell}><button onClick={() => startBatchEditing(b)} style={styles.smallBlueButton}>Bearbeiten</button> <button onClick={() => void handleBatchDelete(b)} style={styles.smallRedButton}>Löschen</button></td></tr>)}</tbody></table>}</section>
@@ -110,6 +225,21 @@ function conditionLabel(value: DeviceCondition | null) { return ({ unknown: "Unb
 function erasureLabel(value: DataErasureStatus | null) { return ({ unknown: "Unbekannt", not_started: "Nicht begonnen", in_progress: "In Bearbeitung", completed: "Abgeschlossen", failed: "Fehlgeschlagen" } as Record<string, string>)[value || "unknown"]; }
 function statusLabel(value: string) { return statusOptions.find(([key]) => key === value)?.[1] || value; }
 
-const styles = { main: { maxWidth: 1200, margin: "0 auto", padding: 32, fontFamily: "Arial, sans-serif" }, section: { border: "1px solid #ddd", borderRadius: 8, padding: 20, marginTop: 24, marginBottom: 32 }, grid: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16, marginTop: 16 }, filterGrid: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 20 }, input: { display: "block", width: "100%", boxSizing: "border-box" as const, marginTop: 6, padding: 10, border: "1px solid #bbb", borderRadius: 5 }, textarea: { display: "block", width: "100%", minHeight: 80, boxSizing: "border-box" as const, marginTop: 6, padding: 10, border: "1px solid #bbb", borderRadius: 5, resize: "vertical" as const }, buttonRow: { display: "flex", gap: 10, alignItems: "center" }, actionRow: { display: "flex", gap: 8, flexWrap: "wrap" as const }, blueButton: { marginTop: 20, padding: "10px 18px", border: 0, borderRadius: 6, background: "#2563eb", color: "white", cursor: "pointer" }, greenButton: { marginTop: 20, padding: "10px 18px", border: 0, borderRadius: 6, background: "#16a34a", color: "white", cursor: "pointer" }, grayButton: { marginTop: 20, padding: "10px 18px", border: 0, borderRadius: 6, background: "#6b7280", color: "white", cursor: "pointer" }, smallBlueButton: { padding: "6px 10px", border: 0, borderRadius: 5, background: "#2563eb", color: "white", cursor: "pointer" }, smallRedButton: { padding: "6px 10px", border: 0, borderRadius: 5, background: "#dc2626", color: "white", cursor: "pointer" }, smallGrayButton: { padding: "6px 10px", border: 0, borderRadius: 5, background: "#64748b", color: "white", cursor: "pointer" }, statusSelect: { padding: 6, borderRadius: 5, border: "1px solid #bbb" }, error: { background: "#fee2e2", color: "#991b1b", padding: 12, borderRadius: 6, marginTop: 20 }, table: { width: "100%", borderCollapse: "collapse" as const }, cell: { textAlign: "left" as const, padding: 10, borderBottom: "1px solid #ddd", verticalAlign: "top" as const } };
+const styles = { main: { maxWidth: 1200, margin: "0 auto", padding: 32, fontFamily: "Arial, sans-serif" }, section: { border: "1px solid #ddd", borderRadius: 8, padding: 20, marginTop: 24, marginBottom: 32 }, grid: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16, marginTop: 16 }, filterGrid: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 20 },dashboardGrid: {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+  gap: 12,
+  marginTop: 16,
+},
+
+dashboardCard: {
+  display: "flex",
+  flexDirection: "column" as const,
+  gap: 6,
+  padding: 16,
+  border: "1px solid #ddd",
+  borderRadius: 8,
+  background: "#f8fafc",
+}, input: { display: "block", width: "100%", boxSizing: "border-box" as const, marginTop: 6, padding: 10, border: "1px solid #bbb", borderRadius: 5 }, textarea: { display: "block", width: "100%", minHeight: 80, boxSizing: "border-box" as const, marginTop: 6, padding: 10, border: "1px solid #bbb", borderRadius: 5, resize: "vertical" as const }, buttonRow: { display: "flex", gap: 10, alignItems: "center" }, actionRow: { display: "flex", gap: 8, flexWrap: "wrap" as const }, blueButton: { marginTop: 20, padding: "10px 18px", border: 0, borderRadius: 6, background: "#2563eb", color: "white", cursor: "pointer" }, greenButton: { marginTop: 20, padding: "10px 18px", border: 0, borderRadius: 6, background: "#16a34a", color: "white", cursor: "pointer" }, grayButton: { marginTop: 20, padding: "10px 18px", border: 0, borderRadius: 6, background: "#6b7280", color: "white", cursor: "pointer" }, smallBlueButton: { padding: "6px 10px", border: 0, borderRadius: 5, background: "#2563eb", color: "white", cursor: "pointer" }, smallRedButton: { padding: "6px 10px", border: 0, borderRadius: 5, background: "#dc2626", color: "white", cursor: "pointer" }, smallGrayButton: { padding: "6px 10px", border: 0, borderRadius: 5, background: "#64748b", color: "white", cursor: "pointer" }, statusSelect: { padding: 6, borderRadius: 5, border: "1px solid #bbb" }, error: { background: "#fee2e2", color: "#991b1b", padding: 12, borderRadius: 6, marginTop: 20 }, table: { width: "100%", borderCollapse: "collapse" as const }, cell: { textAlign: "left" as const, padding: 10, borderBottom: "1px solid #ddd", verticalAlign: "top" as const } };
 
 export default App;
