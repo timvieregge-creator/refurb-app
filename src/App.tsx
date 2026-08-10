@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+﻿import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import {
   createSourceBatch,
@@ -24,13 +24,13 @@ import DeviceDetail from "./DeviceDetail";
 const statusOptions: [DeviceStatus, string][] = [
   ["received", "Eingegangen"],
   ["identified", "Identifiziert"],
-  ["waiting_for_erasure", "Wartet auf Datenlöschung"],
-  ["erased", "Daten gelöscht"],
+  ["waiting_for_erasure", "Wartet auf DatenlÃ¶schung"],
+  ["erased", "Daten gelÃ¶scht"],
   ["tested", "Getestet"],
   ["waiting_for_repair", "Wartet auf Reparatur"],
   ["in_repair", "In Reparatur"],
   ["repair_failed", "Reparatur fehlgeschlagen"],
-  ["ready_for_grading", "Bereit für Grading"],
+  ["ready_for_grading", "Bereit fÃ¼r Grading"],
   ["graded", "Gegradet"],
   ["ready_for_sale", "Verkaufsbereit"],
   ["reserved", "Reserviert"],
@@ -92,12 +92,7 @@ function App() {
     () => [...new Set(batches.map((b) => b.lot_number))].filter((x): x is string => Boolean(x)).sort((a, b) => a.localeCompare(b, "de")),
     [batches],
   );
-if (
-  window.location.hash.startsWith("#/geraet/") ||
-  window.location.pathname.startsWith("/geraet/")
-) {
-  return <DeviceDetail />;
-}
+
   const filteredBatches = useMemo(() => {
     const search = batchSearch.trim().toLowerCase();
     return batches.filter((b) => {
@@ -151,12 +146,12 @@ if (
   }
 
   async function handleBatchDelete(batch: SourceBatch) {
-    if (!window.confirm(`Soll die Einkaufspartie von "${batch.supplier_name}" wirklich gelöscht werden?`)) return;
-    try { setSaving(true); setError(""); await deleteSourceBatch(batch.id); if (selectedBatchId === batch.id) { setSelectedBatchId(""); setDevices([]); } await loadInitialData(); } catch (err) { setError(err instanceof Error ? err.message : "Die Einkaufspartie konnte nicht gelöscht werden"); } finally { setSaving(false); }
+    if (!window.confirm(`Soll die Einkaufspartie von "${batch.supplier_name}" wirklich gelÃ¶scht werden?`)) return;
+    try { setSaving(true); setError(""); await deleteSourceBatch(batch.id); if (selectedBatchId === batch.id) { setSelectedBatchId(""); setDevices([]); } await loadInitialData(); } catch (err) { setError(err instanceof Error ? err.message : "Die Einkaufspartie konnte nicht gelÃ¶scht werden"); } finally { setSaving(false); }
   }
 
   async function handleBatchChange(id: string) {
-    setSelectedBatchId(id); setDevices([]); setError(""); if (id) try { setDevices(await getDevicesByBatch(id)); } catch (err) { setError(err instanceof Error ? err.message : "Fehler beim Laden der Geräte"); }
+    setSelectedBatchId(id); setDevices([]); setError(""); if (id) try { setDevices(await getDevicesByBatch(id)); } catch (err) { setError(err instanceof Error ? err.message : "Fehler beim Laden der GerÃ¤te"); }
   }
 
   function resetDeviceForm() {
@@ -173,23 +168,23 @@ if (
 
   async function handleDeviceSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!selectedBatchId) return setError("Bitte zuerst eine Einkaufspartie auswählen.");
+    if (!selectedBatchId) return setError("Bitte zuerst eine Einkaufspartie auswÃ¤hlen.");
     if (!serialNumber.trim() && !imei1.trim()) return setError("Bitte Seriennummer oder IMEI eingeben.");
-    try { setSaving(true); setError(""); if (editingDeviceId) await updateDevice(editingDeviceId, deviceInput()); else await createDevice({ sourceBatchId: selectedBatchId, ...deviceInput() }); resetDeviceForm(); await refreshDevices(); } catch (err) { setError(err instanceof Error ? err.message : "Fehler beim Speichern des Geräts"); } finally { setSaving(false); }
+    try { setSaving(true); setError(""); if (editingDeviceId) await updateDevice(editingDeviceId, deviceInput()); else await createDevice({ sourceBatchId: selectedBatchId, ...deviceInput() }); resetDeviceForm(); await refreshDevices(); } catch (err) { setError(err instanceof Error ? err.message : "Fehler beim Speichern des GerÃ¤ts"); } finally { setSaving(false); }
   }
 
   async function handleDeviceDelete(device: Device) {
-    if (!window.confirm(`Soll das Gerät "${device.internal_number}" wirklich gelöscht werden?`)) return;
-    try { setSaving(true); setError(""); await deleteDevice(device.id); if (editingDeviceId === device.id) resetDeviceForm(); await refreshDevices(); } catch (err) { setError(err instanceof Error ? err.message : "Das Gerät konnte nicht gelöscht werden"); } finally { setSaving(false); }
+    if (!window.confirm(`Soll das GerÃ¤t "${device.internal_number}" wirklich gelÃ¶scht werden?`)) return;
+    try { setSaving(true); setError(""); await deleteDevice(device.id); if (editingDeviceId === device.id) resetDeviceForm(); await refreshDevices(); } catch (err) { setError(err instanceof Error ? err.message : "Das GerÃ¤t konnte nicht gelÃ¶scht werden"); } finally { setSaving(false); }
   }
 
   async function handleStatusChange(id: string, status: DeviceStatus) {
-    try { setSaving(true); setError(""); await transitionDevice(id, status); await refreshDevices(); } catch (err) { setError(err instanceof Error ? err.message : "Fehler beim Ändern des Status"); } finally { setSaving(false); }
+    try { setSaving(true); setError(""); await transitionDevice(id, status); await refreshDevices(); } catch (err) { setError(err instanceof Error ? err.message : "Fehler beim Ã„ndern des Status"); } finally { setSaving(false); }
   }
 
   async function handleDeviceSearch(value: string) {
     setDeviceSearch(value);
-    try { setSearchResults(await searchDevices(value)); } catch (err) { setError(err instanceof Error ? err.message : "Fehler bei der Gerätesuche"); }
+    try { setSearchResults(await searchDevices(value)); } catch (err) { setError(err instanceof Error ? err.message : "Fehler bei der GerÃ¤tesuche"); }
   }
 
   function handlePrintDevice(device: Device) { setPrintDevice(device); document.body.classList.add("printing"); window.setTimeout(() => window.print(), 150); }
@@ -200,24 +195,31 @@ if (
     return () => window.removeEventListener("afterprint", afterPrint);
   }, []);
 
+  if (
+    window.location.hash.startsWith("#/geraet/") ||
+    window.location.pathname.startsWith("/geraet/")
+  ) {
+    return <DeviceDetail />;
+  }
+
   return (
     <>
       <main style={styles.main}>
         <h1>Refurbishment-App</h1>
-        <p>Einkaufspartien und Geräte verwalten</p>
+        <p>Einkaufspartien und GerÃ¤te verwalten</p>
         {error && <div style={styles.error}>{error}</div>}
 
-        <section style={styles.section}><h2>Dashboard</h2><div style={styles.dashboardGrid}><div style={styles.dashboardCard}><strong>{allDevices.length}</strong><span>Alle Geräte</span></div>{statusOptions.map(([status, label]) => <div key={status} style={styles.dashboardCard}><strong>{deviceCounts[status]}</strong><span>{label}</span></div>)}</div></section>
+        <section style={styles.section}><h2>Dashboard</h2><div style={styles.dashboardGrid}><div style={styles.dashboardCard}><strong>{allDevices.length}</strong><span>Alle GerÃ¤te</span></div>{statusOptions.map(([status, label]) => <div key={status} style={styles.dashboardCard}><strong>{deviceCounts[status]}</strong><span>{label}</span></div>)}</div></section>
 
-        <section style={styles.section}><h2>Gerätesuche</h2><input value={deviceSearch} onChange={(e) => void handleDeviceSearch(e.target.value)} placeholder="Seriennummer, IMEI, interne Nummer, Hersteller oder Modell" style={styles.input} />{deviceSearch.trim() && <table style={styles.table}><thead><tr>{["Interne Nummer", "Seriennummer", "IMEI 1", "Modell", "Status"].map((x) => <th key={x} style={styles.cell}>{x}</th>)}</tr></thead><tbody>{searchResults.map((d) => <tr key={d.id}><td style={styles.cell}>{d.internal_number}</td><td style={styles.cell}>{d.serial_number || "-"}</td><td style={styles.cell}>{d.imei_1 || "-"}</td><td style={styles.cell}>{[d.manufacturer, d.model].filter(Boolean).join(" ") || "-"}</td><td style={styles.cell}>{statusLabel(d.status)}</td></tr>)}</tbody></table>}</section>
+        <section style={styles.section}><h2>GerÃ¤tesuche</h2><input value={deviceSearch} onChange={(e) => void handleDeviceSearch(e.target.value)} placeholder="Seriennummer, IMEI, interne Nummer, Hersteller oder Modell" style={styles.input} />{deviceSearch.trim() && <table style={styles.table}><thead><tr>{["Interne Nummer", "Seriennummer", "IMEI 1", "Modell", "Status"].map((x) => <th key={x} style={styles.cell}>{x}</th>)}</tr></thead><tbody>{searchResults.map((d) => <tr key={d.id}><td style={styles.cell}>{d.internal_number}</td><td style={styles.cell}>{d.serial_number || "-"}</td><td style={styles.cell}>{d.imei_1 || "-"}</td><td style={styles.cell}>{[d.manufacturer, d.model].filter(Boolean).join(" ") || "-"}</td><td style={styles.cell}>{statusLabel(d.status)}</td></tr>)}</tbody></table>}</section>
 
-        <section style={styles.section}><h2>{editingBatchId ? "Einkaufspartie bearbeiten" : "Neue Einkaufspartie"}</h2><form onSubmit={handleBatchSubmit}><div style={styles.grid}><Field label="Lieferant" value={supplierName} setValue={setSupplierName} placeholder="z. B. ABC GmbH" /><Field label="Lot-Nummer" value={lotNumber} setValue={setLotNumber} placeholder="z. B. LOT-2026-001" /><Field label="Lieferscheinnummer" value={deliveryNoteNumber} setValue={setDeliveryNoteNumber} placeholder="z. B. LS-4711" /><Field label="Lieferantenreferenz" value={supplierReference} setValue={setSupplierReference} placeholder="Bestellnummer" /><label>Eingangsdatum<input type="date" value={receivedAt} onChange={(e) => setReceivedAt(e.target.value)} style={styles.input} /></label><Field label="Einkaufskosten" value={totalPurchaseCost} setValue={setTotalPurchaseCost} placeholder="0,00" /><Field label="Transportkosten" value={transportCost} setValue={setTransportCost} placeholder="0,00" /><Field label="Notiz" value={notes} setValue={setNotes} placeholder="Optional" /></div><div style={styles.buttonRow}><button type="submit" disabled={saving} style={styles.blueButton}>{saving ? "Speichert..." : editingBatchId ? "Änderung speichern" : "Partie speichern"}</button>{editingBatchId && <button type="button" onClick={resetBatchForm} style={styles.grayButton}>Abbrechen</button>}</div></form></section>
+        <section style={styles.section}><h2>{editingBatchId ? "Einkaufspartie bearbeiten" : "Neue Einkaufspartie"}</h2><form onSubmit={handleBatchSubmit}><div style={styles.grid}><Field label="Lieferant" value={supplierName} setValue={setSupplierName} placeholder="z. B. ABC GmbH" /><Field label="Lot-Nummer" value={lotNumber} setValue={setLotNumber} placeholder="z. B. LOT-2026-001" /><Field label="Lieferscheinnummer" value={deliveryNoteNumber} setValue={setDeliveryNoteNumber} placeholder="z. B. LS-4711" /><Field label="Lieferantenreferenz" value={supplierReference} setValue={setSupplierReference} placeholder="Bestellnummer" /><label>Eingangsdatum<input type="date" value={receivedAt} onChange={(e) => setReceivedAt(e.target.value)} style={styles.input} /></label><Field label="Einkaufskosten" value={totalPurchaseCost} setValue={setTotalPurchaseCost} placeholder="0,00" /><Field label="Transportkosten" value={transportCost} setValue={setTransportCost} placeholder="0,00" /><Field label="Notiz" value={notes} setValue={setNotes} placeholder="Optional" /></div><div style={styles.buttonRow}><button type="submit" disabled={saving} style={styles.blueButton}>{saving ? "Speichert..." : editingBatchId ? "Ã„nderung speichern" : "Partie speichern"}</button>{editingBatchId && <button type="button" onClick={resetBatchForm} style={styles.grayButton}>Abbrechen</button>}</div></form></section>
 
-        <section style={styles.section}><h2>{editingDeviceId ? "Gerät bearbeiten" : "Gerät erfassen"}</h2><form onSubmit={handleDeviceSubmit}><label>Einkaufspartie<select value={selectedBatchId} onChange={(e) => void handleBatchChange(e.target.value)} disabled={Boolean(editingDeviceId)} style={styles.input}><option value="">Bitte auswählen</option>{batches.map((b) => <option key={b.id} value={b.id}>{b.supplier_name}{b.lot_number ? ` - Lot ${b.lot_number}` : ""}</option>)}</select></label><div style={styles.grid}><Field label="Seriennummer" value={serialNumber} setValue={setSerialNumber} placeholder="Seriennummer" /><Field label="IMEI 1" value={imei1} setValue={setImei1} placeholder="Optional" /><Field label="IMEI 2" value={imei2} setValue={setImei2} placeholder="Optional" /><Field label="Hersteller" value={manufacturer} setValue={setManufacturer} placeholder="z. B. Dell" /><Field label="Modell" value={model} setValue={setModel} placeholder="z. B. Latitude 5420" /><label>Gerätetyp<select value={deviceType} onChange={(e) => setDeviceType(e.target.value)} style={styles.input}><option value="notebook">Notebook</option><option value="desktop">Desktop-PC</option><option value="monitor">Monitor</option><option value="smartphone">Smartphone</option><option value="tablet">Tablet</option><option value="server">Server</option><option value="other">Sonstiges</option></select></label><Field label="Einkaufspreis" value={purchaseCost} setValue={setPurchaseCost} placeholder="0,00" /><label>Zustand<select value={condition} onChange={(e) => setCondition(e.target.value as DeviceCondition)} style={styles.input}><option value="unknown">Unbekannt</option><option value="good">Gut</option><option value="used">Gebraucht</option><option value="damaged">Beschädigt</option></select></label><Field label="Defektkategorie" value={defectCategory} setValue={setDefectCategory} placeholder="z. B. Display, Akku" /><label>Zubehör vollständig<select value={accessoriesComplete} onChange={(e) => setAccessoriesComplete(e.target.value)} style={styles.input}><option value="">Unbekannt</option><option value="yes">Ja</option><option value="no">Nein</option></select></label><label>Datenlöschung<select value={dataErasureStatus} onChange={(e) => setDataErasureStatus(e.target.value as DataErasureStatus)} style={styles.input}><option value="unknown">Unbekannt</option><option value="not_started">Nicht begonnen</option><option value="in_progress">In Bearbeitung</option><option value="completed">Abgeschlossen</option><option value="failed">Fehlgeschlagen</option></select></label></div><label>Defektbeschreibung<textarea value={defectDescription} onChange={(e) => setDefectDescription(e.target.value)} style={styles.textarea} /></label><label>Prüfnotizen<textarea value={inspectionNotes} onChange={(e) => setInspectionNotes(e.target.value)} style={styles.textarea} /></label><div style={styles.buttonRow}><button type="submit" disabled={saving} style={styles.greenButton}>{saving ? "Speichert..." : editingDeviceId ? "Änderung speichern" : "Gerät speichern"}</button>{editingDeviceId && <button type="button" onClick={resetDeviceForm} style={styles.grayButton}>Abbrechen</button>}</div></form></section>
+        <section style={styles.section}><h2>{editingDeviceId ? "GerÃ¤t bearbeiten" : "GerÃ¤t erfassen"}</h2><form onSubmit={handleDeviceSubmit}><label>Einkaufspartie<select value={selectedBatchId} onChange={(e) => void handleBatchChange(e.target.value)} disabled={Boolean(editingDeviceId)} style={styles.input}><option value="">Bitte auswÃ¤hlen</option>{batches.map((b) => <option key={b.id} value={b.id}>{b.supplier_name}{b.lot_number ? ` - Lot ${b.lot_number}` : ""}</option>)}</select></label><div style={styles.grid}><Field label="Seriennummer" value={serialNumber} setValue={setSerialNumber} placeholder="Seriennummer" /><Field label="IMEI 1" value={imei1} setValue={setImei1} placeholder="Optional" /><Field label="IMEI 2" value={imei2} setValue={setImei2} placeholder="Optional" /><Field label="Hersteller" value={manufacturer} setValue={setManufacturer} placeholder="z. B. Dell" /><Field label="Modell" value={model} setValue={setModel} placeholder="z. B. Latitude 5420" /><label>GerÃ¤tetyp<select value={deviceType} onChange={(e) => setDeviceType(e.target.value)} style={styles.input}><option value="notebook">Notebook</option><option value="desktop">Desktop-PC</option><option value="monitor">Monitor</option><option value="smartphone">Smartphone</option><option value="tablet">Tablet</option><option value="server">Server</option><option value="other">Sonstiges</option></select></label><Field label="Einkaufspreis" value={purchaseCost} setValue={setPurchaseCost} placeholder="0,00" /><label>Zustand<select value={condition} onChange={(e) => setCondition(e.target.value as DeviceCondition)} style={styles.input}><option value="unknown">Unbekannt</option><option value="good">Gut</option><option value="used">Gebraucht</option><option value="damaged">BeschÃ¤digt</option></select></label><Field label="Defektkategorie" value={defectCategory} setValue={setDefectCategory} placeholder="z. B. Display, Akku" /><label>ZubehÃ¶r vollstÃ¤ndig<select value={accessoriesComplete} onChange={(e) => setAccessoriesComplete(e.target.value)} style={styles.input}><option value="">Unbekannt</option><option value="yes">Ja</option><option value="no">Nein</option></select></label><label>DatenlÃ¶schung<select value={dataErasureStatus} onChange={(e) => setDataErasureStatus(e.target.value as DataErasureStatus)} style={styles.input}><option value="unknown">Unbekannt</option><option value="not_started">Nicht begonnen</option><option value="in_progress">In Bearbeitung</option><option value="completed">Abgeschlossen</option><option value="failed">Fehlgeschlagen</option></select></label></div><label>Defektbeschreibung<textarea value={defectDescription} onChange={(e) => setDefectDescription(e.target.value)} style={styles.textarea} /></label><label>PrÃ¼fnotizen<textarea value={inspectionNotes} onChange={(e) => setInspectionNotes(e.target.value)} style={styles.textarea} /></label><div style={styles.buttonRow}><button type="submit" disabled={saving} style={styles.greenButton}>{saving ? "Speichert..." : editingDeviceId ? "Ã„nderung speichern" : "GerÃ¤t speichern"}</button>{editingDeviceId && <button type="button" onClick={resetDeviceForm} style={styles.grayButton}>Abbrechen</button>}</div></form></section>
 
-        <section style={styles.section}><h2>Vorhandene Partien</h2><div style={styles.filterGrid}><Field label="Suche" value={batchSearch} setValue={setBatchSearch} placeholder="Lieferant, Lot, Lieferschein..." /><label>Lieferant filtern<select value={batchSupplierFilter} onChange={(e) => setBatchSupplierFilter(e.target.value)} style={styles.input}><option value="">Alle Lieferanten</option>{suppliers.map((s) => <option key={s}>{s}</option>)}</select></label><label>Lot filtern<select value={batchLotFilter} onChange={(e) => setBatchLotFilter(e.target.value)} style={styles.input}><option value="">Alle Lots</option>{lots.map((l) => <option key={l}>{l}</option>)}</select></label></div>{loading ? <p>Lade Partien...</p> : filteredBatches.length === 0 ? <p>Keine passenden Einkaufspartien vorhanden.</p> : <table style={styles.table}><thead><tr>{["Lieferant", "Lot", "Lieferschein", "Referenz", "Eingang", "Einkaufskosten", "Aktionen"].map((x) => <th key={x} style={styles.cell}>{x}</th>)}</tr></thead><tbody>{filteredBatches.map((b) => <tr key={b.id}><td style={styles.cell}>{b.supplier_name}</td><td style={styles.cell}>{b.lot_number || "-"}</td><td style={styles.cell}>{b.delivery_note_number || "-"}</td><td style={styles.cell}>{b.supplier_reference || "-"}</td><td style={styles.cell}>{b.received_at}</td><td style={styles.cell}>{formatCurrency(b.total_purchase_cost)}</td><td style={styles.cell}><button onClick={() => startBatchEditing(b)} style={styles.smallBlueButton}>Bearbeiten</button> <button onClick={() => void handleBatchDelete(b)} style={styles.smallRedButton}>Löschen</button></td></tr>)}</tbody></table>}</section>
+        <section style={styles.section}><h2>Vorhandene Partien</h2><div style={styles.filterGrid}><Field label="Suche" value={batchSearch} setValue={setBatchSearch} placeholder="Lieferant, Lot, Lieferschein..." /><label>Lieferant filtern<select value={batchSupplierFilter} onChange={(e) => setBatchSupplierFilter(e.target.value)} style={styles.input}><option value="">Alle Lieferanten</option>{suppliers.map((s) => <option key={s}>{s}</option>)}</select></label><label>Lot filtern<select value={batchLotFilter} onChange={(e) => setBatchLotFilter(e.target.value)} style={styles.input}><option value="">Alle Lots</option>{lots.map((l) => <option key={l}>{l}</option>)}</select></label></div>{loading ? <p>Lade Partien...</p> : filteredBatches.length === 0 ? <p>Keine passenden Einkaufspartien vorhanden.</p> : <table style={styles.table}><thead><tr>{["Lieferant", "Lot", "Lieferschein", "Referenz", "Eingang", "Einkaufskosten", "Aktionen"].map((x) => <th key={x} style={styles.cell}>{x}</th>)}</tr></thead><tbody>{filteredBatches.map((b) => <tr key={b.id}><td style={styles.cell}>{b.supplier_name}</td><td style={styles.cell}>{b.lot_number || "-"}</td><td style={styles.cell}>{b.delivery_note_number || "-"}</td><td style={styles.cell}>{b.supplier_reference || "-"}</td><td style={styles.cell}>{b.received_at}</td><td style={styles.cell}>{formatCurrency(b.total_purchase_cost)}</td><td style={styles.cell}><button onClick={() => startBatchEditing(b)} style={styles.smallBlueButton}>Bearbeiten</button> <button onClick={() => void handleBatchDelete(b)} style={styles.smallRedButton}>LÃ¶schen</button></td></tr>)}</tbody></table>}</section>
 
-        <section style={styles.section}><h2>Geräte der ausgewählten Partie</h2>{!selectedBatchId ? <p>Bitte zuerst eine Einkaufspartie auswählen.</p> : devices.length === 0 ? <p>Noch keine Geräte in dieser Partie erfasst.</p> : <table style={styles.table}><thead><tr>{["Interne Nummer", "Seriennummer", "Modell", "Zustand", "Datenlöschung", "Status", "Aktionen"].map((x) => <th key={x} style={styles.cell}>{x}</th>)}</tr></thead><tbody>{devices.map((d) => <tr key={d.id}><td style={styles.cell}>{d.internal_number}</td><td style={styles.cell}>{d.serial_number || "-"}</td><td style={styles.cell}>{[d.manufacturer, d.model].filter(Boolean).join(" ") || "-"}</td><td style={styles.cell}>{conditionLabel(d.condition)}</td><td style={styles.cell}>{erasureLabel(d.data_erasure_status)}</td><td style={styles.cell}><select value={d.status} disabled={saving} onChange={(e) => void handleStatusChange(d.id, e.target.value as DeviceStatus)} style={styles.statusSelect}>{statusOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></td><td style={styles.cell}><button onClick={() => startDeviceEditing(d)} style={styles.smallBlueButton}>Bearbeiten</button> <button onClick={() => void handleDeviceDelete(d)} style={styles.smallRedButton}>Löschen</button> <button onClick={() => handlePrintDevice(d)} style={styles.smallGrayButton}>Drucken</button></td></tr>)}</tbody></table>}</section>
+        <section style={styles.section}><h2>GerÃ¤te der ausgewÃ¤hlten Partie</h2>{!selectedBatchId ? <p>Bitte zuerst eine Einkaufspartie auswÃ¤hlen.</p> : devices.length === 0 ? <p>Noch keine GerÃ¤te in dieser Partie erfasst.</p> : <table style={styles.table}><thead><tr>{["Interne Nummer", "Seriennummer", "Modell", "Zustand", "DatenlÃ¶schung", "Status", "Aktionen"].map((x) => <th key={x} style={styles.cell}>{x}</th>)}</tr></thead><tbody>{devices.map((d) => <tr key={d.id}><td style={styles.cell}>{d.internal_number}</td><td style={styles.cell}>{d.serial_number || "-"}</td><td style={styles.cell}>{[d.manufacturer, d.model].filter(Boolean).join(" ") || "-"}</td><td style={styles.cell}>{conditionLabel(d.condition)}</td><td style={styles.cell}>{erasureLabel(d.data_erasure_status)}</td><td style={styles.cell}><select value={d.status} disabled={saving} onChange={(e) => void handleStatusChange(d.id, e.target.value as DeviceStatus)} style={styles.statusSelect}>{statusOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></td><td style={styles.cell}><button onClick={() => startDeviceEditing(d)} style={styles.smallBlueButton}>Bearbeiten</button> <button onClick={() => void handleDeviceDelete(d)} style={styles.smallRedButton}>LÃ¶schen</button> <button onClick={() => handlePrintDevice(d)} style={styles.smallGrayButton}>Drucken</button></td></tr>)}</tbody></table>}</section>
       </main>
      {printDevice && (() => {
   const deviceUrl =
@@ -237,7 +239,7 @@ if (
           QR-Ziel: {deviceUrl}
         </p>
 
-        <h1>Geräteetikett</h1>
+        <h1>GerÃ¤teetikett</h1>
         <p className="print-number">{printDevice.internal_number}</p>
         <p><strong>Hersteller:</strong> {printDevice.manufacturer || "-"}</p>
         <p><strong>Modell:</strong> {printDevice.model || "-"}</p>
@@ -253,7 +255,7 @@ function Field({ label, value, setValue, placeholder }: { label: string; value: 
 function today() { return new Date().toISOString().slice(0, 10); }
 function parseNumber(value: string) { return Number(value.replace(",", ".")) || 0; }
 function formatCurrency(value: number | null) { return new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(value ?? 0); }
-function conditionLabel(value: DeviceCondition | null) { return ({ unknown: "Unbekannt", good: "Gut", used: "Gebraucht", damaged: "Beschädigt" } as Record<string, string>)[value || "unknown"]; }
+function conditionLabel(value: DeviceCondition | null) { return ({ unknown: "Unbekannt", good: "Gut", used: "Gebraucht", damaged: "BeschÃ¤digt" } as Record<string, string>)[value || "unknown"]; }
 function erasureLabel(value: DataErasureStatus | null) { return ({ unknown: "Unbekannt", not_started: "Nicht begonnen", in_progress: "In Bearbeitung", completed: "Abgeschlossen", failed: "Fehlgeschlagen" } as Record<string, string>)[value || "unknown"]; }
 function statusLabel(value: string) { return statusOptions.find(([key]) => key === value)?.[1] || value; }
 
@@ -280,3 +282,4 @@ const styles = {
 };
 
 export default App;
+
