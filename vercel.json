@@ -1,8 +1,0 @@
-﻿{
-  "rewrites": [
-    {
-      "source": "/geraet/:path*",
-      "destination": "/index.html"
-    }
-  ]
-}
